@@ -1,36 +1,69 @@
 <?php
 
 // /////////////////////////////////////////////////////////////////////////////
-// PLEASE DO NOT RENAME OR REMOVE ANY OF THE CODE BELOW. 
+// PLEASE DO NOT RENAME OR REMOVE ANY OF THE CODE BELOW.
 // YOU CAN ADD YOUR CODE TO THIS FILE TO EXTEND THE FEATURES TO USE THEM IN YOUR WORK.
 // /////////////////////////////////////////////////////////////////////////////
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StorePlayerRequest;
+use App\Models\Player;
+use App\Models\PlayerSkill;
+use Illuminate\Http\JsonResponse;
+
 class PlayerController extends Controller
 {
-    public function index()
+    public function index(): JsonResponse
     {
-        return response("Failed", 500);
+        $players = Player::get();
+
+        return response()->json($players);
     }
 
-    public function show()
+    public function show(Player $player): JsonResponse
     {
-        return response("Failed", 500);
+        return response()->json($player);
     }
 
-    public function store()
+    public function store(StorePlayerRequest $request): JsonResponse
     {
-        return response("Failed", 500);
+        $player = Player::create($request->only('name', 'position'));
+
+        foreach ($request->playerSkills as $skillData) {
+            $player->skills()->create($skillData);
+        }
+
+        $player->load('skills');
+
+        return response()->json($player);
     }
 
-    public function update()
+    public function update(StorePlayerRequest $request, Player $player): JsonResponse
     {
-        return response("Failed", 500);
-    }
+        // Update player details
+        $player->name = $request->name;
+        $player->position = $request->position;
+        $player->save();
 
-    public function destroy()
+        $player->skills()->delete();
+
+        foreach ($request->playerSkills as $skillData) {
+            $skill = new PlayerSkill();
+            $skill->skill = $skillData['skill'];
+            $skill->value = $skillData['value'];
+            $skill->player_id = $player->getKey();
+            $skill->save();
+        }
+
+        $player->load('skills');
+
+        return response()->json($player);
+    }
+    public function destroy(Player $player): JsonResponse
     {
-        return response("Failed", 500);
+        $player->delete();
+
+        return response()->json(['message' => 'Player and their skills have been deleted successfully']);
     }
 }
